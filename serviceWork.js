@@ -1,5 +1,5 @@
-const cacheName = 'v1';
-const cacheFiles = [
+const staticCacheName = 'review-cache-v1';
+const assets = [
     '/',
     '/index.html',
     '/restaurant.html',
@@ -7,8 +7,6 @@ const cacheFiles = [
     '/js/dbhelper.js',
     '/js/main.js',
     '/js/restaurant_info.js',
-    'https://unpkg.com/leaflet@1.3.1/dist/leaflet.js',
-    'https://unpkg.com/leaflet@1.3.1/dist/leaflet.css',
     '/data/restaurants.json',
     '/img/1.jpg',
     '/img/2.jpg',
@@ -22,35 +20,39 @@ const cacheFiles = [
     '/img/10.jpg'
 ];
 
-self.addEventListener('install', function(e) {
-    e.waitUntil(
-        caches.open(cacheName).then(function(cache) {
-            return cache.addAll(cacheFiles);
+self.addEventListener('install', function (event) {
+    event.waitUntil(
+        caches.open(staticCacheName)
+        .then((cache) => {
+            return cache.addAll(assets);
         })
     );
 });
 
-self.addEventListener('fetch', function(e) {
-
-    e.respondWith(
-        caches.match(e.request).then(function(response) {
-
-            if (response) {
-                return response;
-            }
-
-            else {
-                return fetch(e.request).then(function(response) {
-                    const responseClone = response.clone();
-                    caches.open(cacheName).then(function(cache) {
-                        cache.put(e.request, responseClone);
-                    })
-                    return response;
+self.addEventListener('activate', function (event) {
+    event.waitUntil(
+        caches.keys()
+        .then((cacheNames) => {
+            return Promise.all(
+                cacheNames.filter(function (cacheName) {
+                    return cacheName.startsWith('review-') &&
+                        cacheName != staticCacheName;
+                }).map(function (cacheName) {
+                    return caches.delete(cacheName);
                 })
-                .catch(function(err) {
-                    console.error(err);
-                });
-            }         
+            );
+        })
+    );
+});
+
+
+
+
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request)
+        .then((response) => {
+            return response || fetch(event.request);
         })
     );
 });
